@@ -100,6 +100,7 @@ class Piece:
         self.getKnightMoves(matrix, x, y, length)
 
         # Queens
+        self.getQueenMoves(matrix, x, y, length)
 
         # Kings
         self.getKingMoves(matrix, x, y, length)
@@ -302,7 +303,7 @@ class Piece:
                     if cell.getType() == "e" or cell.getColor() == other_color:
                         self.poss_moves.append(cell.getOgPos())
 
-    def getKingMoves(self, matrix, x, y, length):
+    def getKingMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         if self.type == "k":
             self.poss_moves = []
             offsets = [
@@ -326,3 +327,6 @@ class Piece:
                     cell = matrix[y2][x2]
                     if cell.getType() == "e" or cell.getColor() == other_color:
                         self.poss_moves.append(cell.getOgPos())
+
+    def getQueenMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+        pass
