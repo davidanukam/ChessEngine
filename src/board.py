@@ -191,7 +191,6 @@ class Board:
 
                 if clicked_piece.getCurrPos() in moving_piece.getPossMoves():
                     clicked_piece.setType(moving_piece.getType())
-                    clicked_piece.setName(moving_piece.getType())
                     clicked_piece.setColor(moving_piece.getColor())
                     clicked_piece.setImage(moving_piece.getImage())
                     clicked_piece.setMoveCount(moving_piece.getMoveCount() + 1)

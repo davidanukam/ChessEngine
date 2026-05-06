@@ -23,6 +23,9 @@ class Piece:
 
     def setType(self, type: str) -> None:
         self.type = type
+        self.setName(type)
+        if type == "e":
+            self.setColor("")
 
     def getName(self) -> str:
         return self.name
@@ -92,6 +95,14 @@ class Piece:
 
         # Bishops
         self.getBishopMoves(matrix, x, y, length)
+
+        # knights
+        self.getKnightMoves(matrix, x, y, length)
+
+        # Queens
+
+        # Kings
+        self.getKingMoves(matrix, x, y, length)
 
     def getPossMoves(self) -> list[pg.Rect]:
         return self.poss_moves
@@ -266,14 +277,52 @@ class Piece:
                     else:
                         break
 
-    def getKnightMoves(
-        self,
-        matrix: list[list["Piece"]],
-        x: int,
-        up: int,
-        down: int,
-        left: int,
-        right: int,
-        length: int,
-    ):
-        pass
+    def getKnightMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+        if self.type == "n":
+            self.poss_moves = []
+            offsets = [
+                [-2, -1],
+                [-1, -2],
+                [1, -2],
+                [2, -1],
+                [2, 1],
+                [1, 2],
+                [-1, 2],
+                [-2, 1],
+            ]
+
+            other_color = "b" if self.color == "w" else "w"
+
+            for offset in offsets:
+                y2 = y + offset[1]
+                x2 = x + offset[0]
+
+                if x2 >= 0 and y2 >= 0 and x2 <= length and y2 <= length:
+                    cell = matrix[y2][x2]
+                    if cell.getType() == "e" or cell.getColor() == other_color:
+                        self.poss_moves.append(cell.getOgPos())
+
+    def getKingMoves(self, matrix, x, y, length):
+        if self.type == "k":
+            self.poss_moves = []
+            offsets = [
+                [-1, -1],
+                [0, -1],
+                [1, -1],
+                [1, 0],
+                [1, 1],
+                [0, 1],
+                [-1, 1],
+                [-1, 0],
+            ]
+
+            other_color = "b" if self.color == "w" else "w"
+
+            for offset in offsets:
+                y2 = y + offset[1]
+                x2 = x + offset[0]
+
+                if x2 >= 0 and y2 >= 0 and x2 <= length and y2 <= length:
+                    cell = matrix[y2][x2]
+                    if cell.getType() == "e" or cell.getColor() == other_color:
+                        self.poss_moves.append(cell.getOgPos())
