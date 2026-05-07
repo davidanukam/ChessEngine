@@ -173,7 +173,7 @@ class Board:
         clicked_piece: Piece = self.matrix[y][x]
         if self.selected_piece == None and clicked_piece.getType() != "e":
             self.selected_piece = clicked_piece
-            self.selected_piece.updatePossMoves(self.matrix, x, y, self.cell_size)
+            self.selected_piece.updatePossMoves(self.matrix, x, y)
             self.is_moving = True
         else:
             if self.is_moving:
