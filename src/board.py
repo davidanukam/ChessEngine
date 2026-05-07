@@ -2,6 +2,9 @@ import pygame as pg
 
 from piece import Piece
 
+pg.font.init()
+font_arial = pg.font.SysFont("Arial", 20)
+
 
 class Board:
     def __init__(self, width: int, height: int):
@@ -22,9 +25,12 @@ class Board:
         self.matrix: list[list[Piece]] = [
             [Piece("e") for i in range(self.cols)] for j in range(self.rows)
         ]
+        self.states: list[list[list[pg.Rect]]] = []
 
         self.is_moving: bool = False
         self.selected_piece: Piece | None = None
+
+        self.turn = "w"
 
         self.setup()
 
@@ -115,8 +121,47 @@ class Board:
     def getTypes(self) -> dict[int]:
         return self.types
 
+    def undo(self):
+        if len(self.states):
+
+            last_state = self.states.pop()
+
+            # Testing
+            self.states.append(
+                [
+                    [self.matrix[row][col].getCurrPos() for row in range(self.rows)]
+                    for col in range(self.cols)
+                ]
+            )
+
+            curr_state = self.states.pop()
+
+            print("\n\n\n")
+            print(last_state)
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    self.matrix[row][col].setCurrPos(last_state[row][col])
+                print()
+
+            print("\n\n\n")
+
+            s = []
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    if last_state[row][col] != curr_state[row][col]:
+                        print("L: ", end="")
+                        print(last_state[row][col])
+                        print("C: ", end="")
+                        print(curr_state[row][col])
+                    else:
+                        s.append("s")
+
+            print(s.count("s"))
+
     def draw(self, surface):
-        colors = ["white", "green"]
+        light_brown = (193, 135, 70)
+        dark_brown = (63, 35, 20)
+        colors = [dark_brown, light_brown]
         color_type = False
 
         for row in range(self.rows):
@@ -149,29 +194,54 @@ class Board:
                 color_type = not color_type
             color_type = not color_type
 
-    def show_poss_moves(self, surface):
+    def show_poss_moves(self, surface: pg.Surface):
+        border_size = 3
+
         for row in range(self.rows):
             for col in range(self.cols):
                 pos = pg.Rect(
-                    col * self.cell_size,
-                    row * self.cell_size,
-                    self.cell_size,
-                    self.cell_size,
+                    col * self.cell_size + border_size / 2,
+                    row * self.cell_size + border_size / 2,
+                    self.cell_size - border_size,
+                    self.cell_size - border_size,
                 )
+
+                # Show turn / other info
+                if self.matrix[row][col].getColor() == self.turn:
+                    pg.draw.rect(surface, "green", pos, border_size)
 
                 # Selected Border
                 if self.matrix[row][col] == self.selected_piece:
-                    pg.draw.rect(surface, "red", pos, 5)
+                    pg.draw.rect(surface, "red", pos, border_size)
 
                     # Possible positions
                     for p in self.matrix[row][col].getPossMoves():
-                        pg.draw.rect(surface, "blue", p, 5)
+                        pg.draw.rect(surface, "blue", p, border_size)
 
     def select(self, pos):
         x: int = pos[0] // self.cell_size
         y: int = pos[1] // self.cell_size
         clicked_piece: Piece = self.matrix[y][x]
-        if self.selected_piece == None and clicked_piece.getType() != "e":
+
+        print("BEFORE SAVE")
+        print(self.states)
+
+        # Save state before new move
+        self.states.append(
+            [
+                [self.matrix[row][col].getCurrPos() for row in range(self.rows)]
+                for col in range(self.cols)
+            ]
+        )
+
+        print("AFTER SAVE")
+        print(self.states)
+
+        if (
+            self.selected_piece == None
+            and clicked_piece.getType() != "e"
+            and clicked_piece.getColor() == self.turn
+        ):
             self.selected_piece = clicked_piece
             self.selected_piece.updatePossMoves(self.matrix, x, y)
             self.is_moving = True
@@ -192,6 +262,27 @@ class Board:
                     clicked_piece.setMoveCount(moving_piece.getMoveCount() + 1)
 
                     moving_piece.setType("e")
+
+                    # Switch turns
+                    self.turn = "b" if self.turn == "w" else "w"
+
+                    # Save state again after new move
+                    # NOTE: state is removed right after
+                    self.states.append(
+                        [
+                            [
+                                self.matrix[row][col].getCurrPos()
+                                for row in range(self.rows)
+                            ]
+                            for col in range(self.cols)
+                        ]
+                    )
+
+                # Remove last saved state if no move is made
+                self.states.pop()
+
+                print("AFTER SELECT")
+                print(self.states)
 
                 self.is_moving = False
             self.selected_piece = None

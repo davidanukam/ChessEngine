@@ -29,6 +29,9 @@ def main():
                 running = False
             if event.type == pg.MOUSEBUTTONDOWN:
                 board.select(event.pos)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_z:
+                    board.undo()
 
         ## Update
 
