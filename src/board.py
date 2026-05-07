@@ -132,7 +132,7 @@ class Board:
                 # Checkerboard
                 pg.draw.rect(surface, colors[int(color_type)], pos)
 
-                # Piece
+                # Chess Piece
                 image: pg.Surface = self.matrix[row][col].getImage()
                 if image:
                     surface.blit(image, pos)
@@ -163,12 +163,8 @@ class Board:
                 if self.matrix[row][col] == self.selected_piece:
                     pg.draw.rect(surface, "red", pos, 5)
 
-                    # print(self.matrix[row][col].getPossMoves())
-                    # print(self.matrix[row][col].getCurrPos())
-
                     # Possible positions
                     for p in self.matrix[row][col].getPossMoves():
-                        # print(p)
                         pg.draw.rect(surface, "blue", p, 5)
 
     def select(self, pos):
