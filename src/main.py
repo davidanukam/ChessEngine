@@ -32,6 +32,10 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_z:
                     board.undo()
+                if event.key == pg.K_h:
+                    board.help("Last State")
+                if event.key == pg.K_p:
+                    board.print("Curr State")
 
         ## Update
 
