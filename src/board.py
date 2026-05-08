@@ -19,16 +19,22 @@ class Board:
         }
         self.width: int = width
         self.height: int = height
+
         self.cell_size: int = max(width, height) // 8
         self.rows: int = width // self.cell_size
         self.cols: int = height // self.cell_size
+
         self.matrix: list[list[Piece]] = [
             [Piece("e") for i in range(self.cols)] for j in range(self.rows)
         ]
+
+        self.selected_piece: Piece | None = None
         self.states: list[list[list[Piece]]] = []
 
         self.is_moving: bool = False
-        self.selected_piece: Piece | None = None
+        self.in_check: bool = False
+        self.in_checkmate: bool = False
+        self.game_over: bool = False
 
         self.turn = "w"
 
@@ -201,7 +207,7 @@ class Board:
                 color_type = not color_type
             color_type = not color_type
 
-    def show_poss_moves(self, surface: pg.Surface):
+    def showPossMoves(self, surface: pg.Surface):
         border_size = 3
 
         for row in range(self.rows):
@@ -213,17 +219,29 @@ class Board:
                     self.cell_size - border_size,
                 )
 
+                # Show if in_check or in_checkmate
+                if self.in_check and self.matrix[row][col].getColor() == self.turn:
+                    if self.matrix[row][col].getType() == "k":
+                        pg.draw.rect(surface, "red", pos, border_size)
                 # Show turn
-                if self.matrix[row][col].getColor() == self.turn:
+                elif self.matrix[row][col].getColor() == self.turn:
                     pg.draw.rect(surface, "green", pos, border_size)
 
                 # Selected Border
                 if self.matrix[row][col] == self.selected_piece:
-                    pg.draw.rect(surface, "red", pos, border_size)
+                    pg.draw.rect(surface, "white", pos, border_size)
 
                     # Possible positions
                     for p in self.matrix[row][col].getPossMoves():
                         pg.draw.rect(surface, "blue", p, border_size)
+
+    def updateAllPossMoves(self):
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.matrix[row][col].getColor() == self.turn:
+                    x: int = self.matrix[row][col].getPos()[0] // self.cell_size
+                    y: int = self.matrix[row][col].getPos()[1] // self.cell_size
+                    self.matrix[row][col].updatePossMoves(self.matrix, x, y)
 
     def select(self, pos):
         x: int = pos[0] // self.cell_size
@@ -236,7 +254,10 @@ class Board:
             and clicked_piece.getColor() == self.turn
         ):
             self.selected_piece = clicked_piece
-            self.selected_piece.updatePossMoves(self.matrix, x, y)
+
+            # Update all current turn piece possible moves
+            self.updateAllPossMoves()
+
             self.is_moving = True
 
             # Save state before new move
@@ -264,11 +285,43 @@ class Board:
 
                     moving_piece.setType("e")
 
+                    self.in_check = False
+
+                    # Update all current turn piece possible moves
+                    self.updateAllPossMoves()
+
                     # Switch turns
                     self.turn = "b" if self.turn == "w" else "w"
+                    self.checkForCheck()
                 else:
                     # Remove last saved state if no move is made
                     self.states.pop()
 
                 self.is_moving = False
             self.selected_piece = None
+
+    def getKing(self) -> Piece:
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if (
+                    self.matrix[row][col].getType() == "k"
+                    and self.matrix[row][col].getColor() == self.turn
+                ):
+                    return self.matrix[row][col]
+        return None
+
+    def checkForCheck(self):
+        other_turn = "b" if self.turn == "w" else "w"
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                other_piece = self.matrix[row][col]
+                if other_piece.getColor() == other_turn:
+                    if not self.getKing():
+                        self.game_over = True
+                        return
+                    if self.getKing().getPos() in other_piece.getPossMoves():
+                        self.in_check = True
+                        break
+            if self.in_check:
+                break

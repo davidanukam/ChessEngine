@@ -28,14 +28,16 @@ def main():
             if event.type == pg.QUIT:
                 running = False
             if event.type == pg.MOUSEBUTTONDOWN:
-                board.select(event.pos)
+                if not board.game_over:
+                    board.select(event.pos)
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_z:
-                    board.undo()
-                if event.key == pg.K_h:
-                    board.help("Last State")
-                if event.key == pg.K_p:
-                    board.print("Curr State")
+                if not board.game_over:
+                    if event.key == pg.K_z:
+                        board.undo()
+                    if event.key == pg.K_h:
+                        board.help("Last State")
+                    if event.key == pg.K_p:
+                        board.print("Curr State")
 
         ## Update
 
@@ -43,7 +45,8 @@ def main():
         screen.fill("black")
 
         board.draw(screen)
-        board.show_poss_moves(screen)
+        if not board.game_over:
+            board.showPossMoves(screen)
 
         pg.display.flip()
         clock.tick(FPS)
