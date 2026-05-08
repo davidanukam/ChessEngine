@@ -127,11 +127,12 @@ class Piece:
                     self.poss_moves.append(cell.getPos())
 
             # 2x Up
-            cell = matrix[up][x]
+            cell = matrix[up - 1][x]
             if self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(matrix[up - 1][x].getPos())
+                self.poss_moves.append(cell.getPos())
 
             # Default
+            cell = matrix[up][x]
             if cell.getType() == "e":
                 self.poss_moves.append(cell.getPos())
 
@@ -147,11 +148,12 @@ class Piece:
                     self.poss_moves.append(cell.getPos())
 
             # 2x Down
-            cell = matrix[down][x]
+            cell = matrix[down + 1][x]
             if self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(matrix[down + 1][x].getPos())
+                self.poss_moves.append(cell.getPos())
 
             # Default
+            cell = matrix[down][x]
             if cell.getType() == "e":
                 self.poss_moves.append(cell.getPos())
 

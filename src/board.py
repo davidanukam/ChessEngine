@@ -132,7 +132,15 @@ class Board:
         print(t)
         for row in range(self.rows):
             for col in range(self.cols):
-                print(
+                if curr_state[row][col].getType() == "e":
+                    print(
+                        curr_state[row][col].getType()
+                        + "e"
+                        + str(curr_state[row][col].getMoveCount()),
+                        end=",",
+                    )
+                else:
+                    print(
                     curr_state[row][col].getType()
                     + curr_state[row][col].getColor()
                     + str(curr_state[row][col].getMoveCount()),
