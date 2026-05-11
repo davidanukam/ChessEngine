@@ -75,6 +75,12 @@ class Piece:
     def setMoveCount(self, move_count: int):
         self.move_count = move_count
 
+    def getPossMoves(self) -> list[pg.Rect]:
+        return self.poss_moves
+
+    def setPossMoves(self, new_poss_moves: list[pg.Rect]) -> None:
+        self.poss_moves = new_poss_moves
+
     def updatePossMoves(self, matrix: list[list["Piece"]], x: int, y: int) -> None:
         global other_color
         other_color = "b" if self.color == "w" else "w"
@@ -105,9 +111,6 @@ class Piece:
         # Kings
         if self.type == "k":
             self.getKingMoves(matrix, x, y, length)
-
-    def getPossMoves(self) -> list[pg.Rect]:
-        return self.poss_moves
 
     def getPawnMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         up = y - 1

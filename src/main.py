@@ -40,6 +40,7 @@ def main():
                         board.print("Curr State")
 
         ## Update
+        board.update()
 
         ## Draw
         screen.fill("black")
