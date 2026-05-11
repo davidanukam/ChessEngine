@@ -262,7 +262,10 @@ class Board:
                     if self.matrix[row][col].getType() == "k":
                         pg.draw.rect(surface, "red", pos, border_size)
                 # Show turn
-                elif not self.in_checkmate and self.matrix[row][col].getColor() == self.turn:
+                elif (
+                    not self.in_checkmate
+                    and self.matrix[row][col].getColor() == self.turn
+                ):
                     pg.draw.rect(surface, "green", pos, border_size)
 
                 # Selected Border
@@ -283,15 +286,32 @@ class Board:
                     self.matrix[row][col].updatePossMoves(self.matrix, x, y)
 
     def removeCheckPossMoves(self):
+        other_turn: str = "b" if self.turn == "w" else "w"
+
+        curr_poss_moves: list[pg.Rect] = self.getKing().getPossMoves()
+        remove_poss_moves: list[pg.Rect] = []
+        temp_poss_moves: list[pg.Rect] = []
+
         for row in range(self.rows):
             for col in range(self.cols):
-                curr_poss_moves: list[pg.Rect] = self.getKing().getPossMoves()
-                other_poss_moves: list[pg.Rect] = self.matrix[row][col].getPossMoves()
-                temp_poss_moves: list[pg.Rect] = []
-                for poss_move in curr_poss_moves:
-                    if poss_move not in other_poss_moves:
-                        temp_poss_moves.append(poss_move)
-                self.getKing().setPossMoves(temp_poss_moves)
+                if self.matrix[row][col].getColor() == other_turn:
+                    other_poss_moves = self.matrix[row][col].getPossMoves()
+                    for poss_move in curr_poss_moves:
+                        for other_move in other_poss_moves:
+                            if (
+                                poss_move[0] == other_move[0]
+                                and poss_move[1] == other_move[1]
+                                and poss_move[2] == other_move[2]
+                                and poss_move[3] == other_move[3]
+                            ):
+                                if poss_move not in remove_poss_moves:
+                                    remove_poss_moves.append(poss_move)
+
+        for poss_move in curr_poss_moves:
+            if poss_move not in remove_poss_moves:
+                temp_poss_moves.append(poss_move)
+
+        self.getKing().setPossMoves(temp_poss_moves)
 
     def getKing(self) -> Piece:
         for row in range(self.rows):
@@ -304,7 +324,7 @@ class Board:
         return None
 
     def checkForCheck(self):
-        other_turn = "b" if self.turn == "w" else "w"
+        other_turn: str = "b" if self.turn == "w" else "w"
 
         for row in range(self.rows):
             for col in range(self.cols):
@@ -375,8 +395,12 @@ class Board:
                     self.updateAllPossMoves()
 
                     # Switch turns
-                    self.turn = "b" if self.turn == "w" else "w"
+                    self.turn: str = "b" if self.turn == "w" else "w"
                     self.checkForCheck()
+
+                    # Remove the positions that will keep king in check
+                    # if self.in_check:
+                    #     self.removeCheckPossMoves()
                 else:
                     # Remove last saved state if no move is made
                     self.states.pop()
