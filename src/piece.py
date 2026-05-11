@@ -15,6 +15,8 @@ class Piece:
         self.poss_moves: list[pg.Rect] = []
         self.move_count: int = 0
 
+        self.king_area: list[pg.Rect] = []
+
     def copy(self) -> "Piece":
         copied_pieve = Piece(self.type, self.color)
         copied_pieve.setMoveCount(self.move_count)
@@ -111,6 +113,7 @@ class Piece:
         # Kings
         if self.type == "k":
             self.getKingMoves(matrix, x, y, length)
+            self.updateKingArea(matrix, x, y, length)
 
     def getPawnMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         up = y - 1
@@ -335,3 +338,27 @@ class Piece:
         self.getBishopMoves(matrix, x, y, length)
         self.getKnightMoves(matrix, x, y, length)
         self.getKingMoves(matrix, x, y, length)
+
+    def updateKingArea(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+        offsets = [
+            [-1, -1],
+            [0, -1],
+            [1, -1],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+            [-1, 1],
+            [-1, 0],
+        ]
+
+        for offset in offsets:
+            y2 = y + offset[1]
+            x2 = x + offset[0]
+
+            if x2 >= 0 and y2 >= 0 and x2 <= length and y2 <= length:
+                cell = matrix[y2][x2]
+                if cell.getPos() not in self.king_area:
+                    self.king_area.append(cell.getPos())
+
+    def getKingArea(self) -> list[pg.Rect]:
+        return self.king_area

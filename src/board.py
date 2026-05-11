@@ -186,6 +186,8 @@ class Board:
         # Update the possible moves of all pieces
         self.updateAllPossMoves()
 
+        self.disableMoveIntoCheck()
+
         # Remove the positions that will keep king in check
         if self.in_check:
             self.removeCheckPossMoves()
@@ -259,6 +261,7 @@ class Board:
 
                 # Show if in_check
                 if self.in_check and self.matrix[row][col].getColor() == self.turn:
+                    pg.draw.rect(surface, "green", pos, border_size)
                     if self.matrix[row][col].getType() == "k":
                         pg.draw.rect(surface, "red", pos, border_size)
                 # Show turn
@@ -279,7 +282,6 @@ class Board:
     def updateAllPossMoves(self):
         for row in range(self.rows):
             for col in range(self.cols):
-                # if self.matrix[row][col].getColor() == self.turn:
                 if self.matrix[row][col].getPos():
                     x: int = self.matrix[row][col].getPos()[0] // self.cell_size
                     y: int = self.matrix[row][col].getPos()[1] // self.cell_size
@@ -312,6 +314,35 @@ class Board:
                 temp_poss_moves.append(poss_move)
 
         self.getKing().setPossMoves(temp_poss_moves)
+
+    def disableMoveIntoCheck(self):
+        king_area: list[pg.Rect] = self.getKing().getKingArea()
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.matrix[row][col].getColor() == self.turn:
+                    if self.matrix[row][col].getPos() in king_area:
+                        stuck: bool = self.checkInOtherPossMoves(
+                            self.matrix[row][col].getPos()
+                        )
+                        if stuck:
+                            self.matrix[row][col].setPossMoves([])
+
+    def checkInOtherPossMoves(self, pos: pg.Rect) -> bool:
+        other_turn: str = "b" if self.turn == "w" else "w"
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.matrix[row][col].getColor() == other_turn:
+                    other_poss_moves = self.matrix[row][col].getPossMoves()
+                    for other_move in other_poss_moves:
+                        if (
+                            pos[0] == other_move[0]
+                            and pos[1] == other_move[1]
+                            and pos[2] == other_move[2]
+                            and pos[3] == other_move[3]
+                        ):
+                            return True
 
     def getKing(self) -> Piece:
         for row in range(self.rows):
@@ -355,23 +386,20 @@ class Board:
             and clicked_piece.getType() != "e"
             and clicked_piece.getColor() == self.turn
         ):
-            if self.in_check and clicked_piece.getType() != "k":
+            self.selected_piece = clicked_piece
+
+            if self.in_checkmate:
                 self.selected_piece = None
             else:
-                self.selected_piece = clicked_piece
+                self.is_moving = True
 
-                if self.in_checkmate:
-                    self.selected_piece = None
-                else:
-                    self.is_moving = True
-
-                    # Save state before new move
-                    self.states.append(
-                        [
-                            [self.matrix[row][col].copy() for col in range(self.cols)]
-                            for row in range(self.rows)
-                        ]
-                    )
+                # Save state before new move
+                self.states.append(
+                    [
+                        [self.matrix[row][col].copy() for col in range(self.cols)]
+                        for row in range(self.rows)
+                    ]
+                )
         else:
             if self.is_moving:
                 moving_piece_row: int = (
@@ -398,9 +426,6 @@ class Board:
                     self.turn: str = "b" if self.turn == "w" else "w"
                     self.checkForCheck()
 
-                    # Remove the positions that will keep king in check
-                    # if self.in_check:
-                    #     self.removeCheckPossMoves()
                 else:
                     # Remove last saved state if no move is made
                     self.states.pop()
