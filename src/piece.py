@@ -150,14 +150,16 @@ class Piece:
                 if cell.getType() != "e" and cell.getColor() != "w":
                     self.poss_moves.append(cell.getPos())
 
-            # 2x Up
-            cell = matrix[up - 1][x]
-            if self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
-
             # Default
+            has_default: bool = False
             cell = matrix[up][x]
             if cell.getType() == "e":
+                self.poss_moves.append(cell.getPos())
+                has_default: bool = True
+
+            # 2x Up
+            cell = matrix[up - 1][x]
+            if has_default and self.move_count == 0 and cell.getType() == "e":
                 self.poss_moves.append(cell.getPos())
 
         elif self.color == "b":
@@ -171,14 +173,16 @@ class Piece:
                 if cell.getType() != "e" and cell.getColor() != "b":
                     self.poss_moves.append(cell.getPos())
 
-            # 2x Down
-            cell = matrix[down + 1][x]
-            if self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
-
             # Default
+            has_default: bool = False
             cell = matrix[down][x]
             if cell.getType() == "e":
+                self.poss_moves.append(cell.getPos())
+                has_default: bool = True
+
+            # 2x Down
+            cell = matrix[down + 1][x]
+            if has_default and self.move_count == 0 and cell.getType() == "e":
                 self.poss_moves.append(cell.getPos())
 
     def getRookMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
