@@ -77,6 +77,24 @@ class Piece:
     def setMoveCount(self, move_count: int):
         self.move_count = move_count
 
+    def removePossMoves(self, poss_move: pg.Rect):
+        if len(self.poss_moves):
+            if poss_move in self.poss_moves:
+                self.poss_moves.remove(poss_move)
+
+    def KeepAttackPossMoves(self, poss_move: pg.Rect) -> list[pg.Rect]:
+        attack_poss_moves: list[pg.Rect] = []
+
+        for move in self.poss_moves:
+            if (
+                move[0] == poss_move[0]
+                and move[1] == poss_move[1]
+                and move[2] == poss_move[2]
+                and move[3] == poss_move[3]
+            ):
+                attack_poss_moves.append(move)
+        return attack_poss_moves
+
     def getPossMoves(self) -> list[pg.Rect]:
         return self.poss_moves
 

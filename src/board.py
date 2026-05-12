@@ -190,7 +190,7 @@ class Board:
 
         # Remove the positions that will keep king in check
         if self.in_check:
-            self.removeCheckPossMoves()
+            self.removeCheckPossMovesFromKing()
 
         self.checkForCheckMate()
 
@@ -230,8 +230,8 @@ class Board:
 
         # Show Checkmate & Game Over
         if self.in_checkmate:
-            game_over_surface: pg.Surface = font_arial.render(
-                "  GAME OVER!!!  ", True, "white", "black"
+            checkmate_surface: pg.Surface = font_arial.render(
+                "  Checkmate!!!  ", True, "white", "black"
             )
             self.winner: str = "Black" if self.turn == "w" else "White"
             winner_surface: pg.Surface = font_arial.render(
@@ -239,12 +239,12 @@ class Board:
             )
 
             padding: int = 50
-            game_over_rect: pg.Rect = game_over_surface.get_rect()
-            game_over_rect.center = (self.width // 2, self.height // 2 - padding)
+            checkmate_rect: pg.Rect = checkmate_surface.get_rect()
+            checkmate_rect.center = (self.width // 2, self.height // 2 - padding)
             winner_rect: pg.Rect = winner_surface.get_rect()
             winner_rect.center = (self.width // 2, self.height // 2 + padding)
 
-            surface.blit(game_over_surface, game_over_rect)
+            surface.blit(checkmate_surface, checkmate_rect)
             surface.blit(winner_surface, winner_rect)
 
     def showPossMoves(self, surface: pg.Surface):
@@ -287,7 +287,7 @@ class Board:
                     y: int = self.matrix[row][col].getPos()[1] // self.cell_size
                     self.matrix[row][col].updatePossMoves(self.matrix, x, y)
 
-    def removeCheckPossMoves(self):
+    def removeCheckPossMovesFromKing(self):
         other_turn: str = "b" if self.turn == "w" else "w"
 
         curr_poss_moves: list[pg.Rect] = self.getKing().getPossMoves()
@@ -316,19 +316,49 @@ class Board:
         self.getKing().setPossMoves(temp_poss_moves)
 
     def disableMoveIntoCheck(self):
-        king_area: list[pg.Rect] = self.getKing().getKingArea()
+        if self.getKing():
+            king_area: list[pg.Rect] = self.getKing().getKingArea()
 
-        for row in range(self.rows):
-            for col in range(self.cols):
-                if self.matrix[row][col].getColor() == self.turn:
-                    if self.matrix[row][col].getPos() in king_area:
-                        stuck: bool = self.checkInOtherPossMoves(
-                            self.matrix[row][col].getPos()
-                        )
-                        if stuck:
-                            self.matrix[row][col].setPossMoves([])
+            for row in range(self.rows):
+                for col in range(self.cols):
+                    if self.matrix[row][col].getColor() == self.turn:
+                        if self.matrix[row][col].getPos() in king_area:
+                            cant_move: list[bool, pg.Rect] = self.checkInOtherPossMoves(
+                                self.matrix[row][col].getPos()
+                            )
 
-    def checkInOtherPossMoves(self, pos: pg.Rect) -> bool:
+                            if cant_move[0]:
+                                # Check if the piece can still attack it
+                                curr_poss_moves: list[pg.Rect] = self.matrix[row][
+                                    col
+                                ].getPossMoves()
+
+                                can_attack: bool = False
+                                move_to_keep: pg.Rect = None
+
+                                for poss_move in curr_poss_moves:
+                                    if (
+                                        poss_move[0] == cant_move[1][0]
+                                        and poss_move[1] == cant_move[1][1]
+                                        and poss_move[2] == cant_move[1][2]
+                                        and poss_move[3] == cant_move[1][3]
+                                    ):
+                                        move_to_keep = poss_move
+                                        can_attack = True
+                                        break
+
+                                if can_attack and move_to_keep:
+                                    # Remove the non-attackable positions
+                                    self.matrix[row][col].setPossMoves(
+                                        self.matrix[row][col].KeepAttackPossMoves(
+                                            move_to_keep
+                                        )
+                                    )
+                                else:
+                                    # Disable piece movement
+                                    self.matrix[row][col].setPossMoves([])
+
+    def checkInOtherPossMoves(self, pos: pg.Rect) -> list[bool, pg.Rect]:
         other_turn: str = "b" if self.turn == "w" else "w"
 
         for row in range(self.rows):
@@ -342,7 +372,8 @@ class Board:
                             and pos[2] == other_move[2]
                             and pos[3] == other_move[3]
                         ):
-                            return True
+                            return [True, self.matrix[row][col].getPos()]
+        return [False, None]
 
     def getKing(self) -> Piece:
         for row in range(self.rows):
@@ -425,7 +456,7 @@ class Board:
                     # Switch turns
                     self.turn: str = "b" if self.turn == "w" else "w"
                     self.checkForCheck()
-
+                    # self.disableMoveIntoCheck()
                 else:
                     # Remove last saved state if no move is made
                     self.states.pop()
