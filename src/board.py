@@ -219,7 +219,10 @@ class Board:
             color_type = not color_type
 
         # Show Checkmate & Game Over
+        padding: int = 50
         if self.in_checkmate:
+            self.game_over = True
+
             checkmate_surface: pg.Surface = font_arial.render(
                 "  Checkmate!!!  ", True, "white", "black"
             )
@@ -228,7 +231,6 @@ class Board:
                 f"  {self.winner} Wins  ", True, "white", "black"
             )
 
-            padding: int = 50
             checkmate_rect: pg.Rect = checkmate_surface.get_rect()
             checkmate_rect.center = (self.width // 2, self.height // 2 - padding)
             winner_rect: pg.Rect = winner_surface.get_rect()
@@ -236,6 +238,15 @@ class Board:
 
             surface.blit(checkmate_surface, checkmate_rect)
             surface.blit(winner_surface, winner_rect)
+
+        elif self.game_over:
+            game_over_surface: pg.SurfaceType = font_arial.render(
+                " Game Over ", True, "white", "black"
+            )
+            game_over_rect: pg.Rect = game_over_surface.get_rect()
+            game_over_rect.center = (self.width // 2, self.height // 2)
+
+            surface.blit(game_over_surface, game_over_rect)
 
     def showPossMoves(self, surface: pg.Surface):
         border_size = 3
@@ -401,7 +412,9 @@ class Board:
         self.selected_piece.setColor(prev_color)
         self.updateOpPossMoves()
 
-        return self.getKing().getPos() in self.op_poss_moves
+        if self.getKing():
+            return self.getKing().getPos() in self.op_poss_moves
+        return None
 
     def RemoveMovesThatDontExitCheck(self):
         prev_color = self.selected_piece.getColor()
@@ -427,8 +440,11 @@ class Board:
             self.checkIfMoveIntoCheck()
 
             # Check if the King is not in check after the pseudo move
-            if not self.getKing().getPos() in self.op_poss_moves:
-                new_poss_moves.append(move)
+            if self.getKing():
+                if not self.getKing().getPos() in self.op_poss_moves:
+                    new_poss_moves.append(move)
+            else:
+                return
 
             # Return pseudo move cell data back to what is was
             self.matrix[row][col].setType(prev_move_type)
@@ -477,6 +493,12 @@ class Board:
                 self.selected_piece = None
             else:
                 self.is_moving = True
+
+                # FIXME: Solve King Stalemate
+                # Check stalemate
+                if self.in_check:
+                    pass
+
 
                 # Pretend a piece moves into one of its possible possiitions.
                 # If that move happens and the king is still in check then we can't make that move.

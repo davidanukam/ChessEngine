@@ -166,16 +166,18 @@ class Piece:
                         self.poss_moves.append(cell.getPos())
 
             # Default
-            has_default: bool = False
-            cell = matrix[up][x]
-            if cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
-                has_default: bool = True
+            if up >= 0:
+                has_default: bool = False
+                cell = matrix[up][x]
+                if cell.getType() == "e":
+                    self.poss_moves.append(cell.getPos())
+                    has_default: bool = True
 
-            # 2x Up
-            cell = matrix[up - 1][x]
-            if has_default and self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
+                # 2x Up
+                if up - 1 >= 0:
+                    cell = matrix[up - 1][x]
+                    if has_default and self.move_count == 0 and cell.getType() == "e":
+                        self.poss_moves.append(cell.getPos())
 
         elif self.color == "b":
             # Attack
@@ -197,16 +199,18 @@ class Piece:
                         self.poss_moves.append(cell.getPos())
 
             # Default
-            has_default: bool = False
-            cell = matrix[down][x]
-            if cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
-                has_default: bool = True
+            if down <= length:
+                has_default: bool = False
+                cell = matrix[down][x]
+                if cell.getType() == "e":
+                    self.poss_moves.append(cell.getPos())
+                    has_default: bool = True
 
-            # 2x Down
-            cell = matrix[down + 1][x]
-            if has_default and self.move_count == 0 and cell.getType() == "e":
-                self.poss_moves.append(cell.getPos())
+                # 2x Down
+                if down + 1 <= length:
+                    cell = matrix[down + 1][x]
+                    if has_default and self.move_count == 0 and cell.getType() == "e":
+                        self.poss_moves.append(cell.getPos())
 
     def getRookMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         # Left starting from piece
