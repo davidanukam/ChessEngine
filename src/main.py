@@ -2,7 +2,7 @@ import pygame as pg
 import pywinstyles
 import sys
 
-from board import Board
+from src.board import Board
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
     pg.display.set_caption("Chess")
     pywinstyles.change_header_color(screen, "black")
 
-    icon = pg.image.load("../assets/board.png")
+    icon = pg.image.load("assets/board.png")
     pg.display.set_icon(icon)
 
     clock = pg.time.Clock()
@@ -39,9 +39,6 @@ def main():
                     if event.key == pg.K_p:
                         board.print("Curr State")
 
-        ## Update
-        board.update()
-
         ## Draw
         screen.fill("black")
 
@@ -54,7 +51,3 @@ def main():
 
     pg.quit()
     sys.exit()
-
-
-if __name__ == "__main__":
-    main()

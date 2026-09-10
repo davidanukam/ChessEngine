@@ -15,13 +15,14 @@ class Piece:
         self.poss_moves: list[pg.Rect] = []
         self.move_count: int = 0
 
+        self.range: list[pg.Rect] = []
         self.king_area: list[pg.Rect] = []
 
     def copy(self) -> "Piece":
-        copied_pieve = Piece(self.type, self.color)
-        copied_pieve.setMoveCount(self.move_count)
-        copied_pieve.setPos(self.pos)
-        return copied_pieve
+        copied_piece = Piece(self.type, self.color)
+        copied_piece.setMoveCount(self.move_count)
+        copied_piece.setPos(self.pos)
+        return copied_piece
 
     def getType(self) -> str:
         return self.type
@@ -63,7 +64,7 @@ class Piece:
         if image:
             self.image = image
         elif self.type != "e":
-            self.image = pg.image.load(rf"..\assets\{self.name}-{self.color}.png")
+            self.image = pg.image.load(rf"assets\{self.name}-{self.color}.png")
 
     def getPos(self) -> pg.Rect:
         return self.pos
@@ -77,23 +78,8 @@ class Piece:
     def setMoveCount(self, move_count: int):
         self.move_count = move_count
 
-    def removePossMoves(self, poss_move: pg.Rect):
-        if len(self.poss_moves):
-            if poss_move in self.poss_moves:
-                self.poss_moves.remove(poss_move)
-
-    def KeepAttackPossMoves(self, poss_move: pg.Rect) -> list[pg.Rect]:
-        attack_poss_moves: list[pg.Rect] = []
-
-        for move in self.poss_moves:
-            if (
-                move[0] == poss_move[0]
-                and move[1] == poss_move[1]
-                and move[2] == poss_move[2]
-                and move[3] == poss_move[3]
-            ):
-                attack_poss_moves.append(move)
-        return attack_poss_moves
+    def clearAllMoves(self):
+        self.poss_moves = []
 
     def getPossMoves(self) -> list[pg.Rect]:
         return self.poss_moves
@@ -101,24 +87,38 @@ class Piece:
     def setPossMoves(self, new_poss_moves: list[pg.Rect]) -> None:
         self.poss_moves = new_poss_moves
 
-    def updatePossMoves(self, matrix: list[list["Piece"]], x: int, y: int) -> None:
+    def getRange(self) -> list[pg.Rect]:
+        return self.range
+
+    def setRange(self, new_range: list[pg.Rect]) -> None:
+        self.range = new_range
+
+    def updatePossMoves(
+        self,
+        matrix: list[list["Piece"]],
+        x: int,
+        y: int,
+        include_pawn_attack: bool = False,
+    ) -> None:
         global other_color
         other_color = "b" if self.color == "w" else "w"
 
-        self.poss_moves = []
-        length = len(matrix) - 1
+        self.poss_moves: list[pg.Rect] = []
+        length: int = len(matrix) - 1
 
         # Pawns
         if self.type == "p":
-            self.getPawnMoves(matrix, x, y, length)
+            self.getPawnMoves(matrix, x, y, length, include_pawn_attack)
 
         # Rooks
         if self.type == "r":
             self.getRookMoves(matrix, x, y, length)
+            self.getRookRange(matrix, x, y, length)
 
         # Bishops
         if self.type == "b":
             self.getBishopMoves(matrix, x, y, length)
+            self.getBishopRange(matrix, x, y, length)
 
         # knights
         if self.type == "n":
@@ -133,7 +133,14 @@ class Piece:
             self.getKingMoves(matrix, x, y, length)
             self.updateKingArea(matrix, x, y, length)
 
-    def getPawnMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+    def getPawnMoves(
+        self,
+        matrix: list[list["Piece"]],
+        x: int,
+        y: int,
+        length: int,
+        include_attack: bool = False,
+    ):
         up = y - 1
         down = y + 1
         left = x - 1
@@ -143,12 +150,20 @@ class Piece:
             # Attack
             if up >= 0 and left >= 0:
                 cell = matrix[up][left]
-                if cell.getType() != "e" and cell.getColor() != "w":
-                    self.poss_moves.append(cell.getPos())
+                if include_attack:
+                    if cell.getColor() != "w":
+                        self.poss_moves.append(cell.getPos())
+                else:
+                    if cell.getType() != "e" and cell.getColor() != "w":
+                        self.poss_moves.append(cell.getPos())
             if up >= 0 and right <= length:
                 cell = matrix[up][right]
-                if cell.getType() != "e" and cell.getColor() != "w":
-                    self.poss_moves.append(cell.getPos())
+                if include_attack:
+                    if cell.getColor() != "w":
+                        self.poss_moves.append(cell.getPos())
+                else:
+                    if cell.getType() != "e" and cell.getColor() != "w":
+                        self.poss_moves.append(cell.getPos())
 
             # Default
             has_default: bool = False
@@ -166,12 +181,20 @@ class Piece:
             # Attack
             if down <= length and right <= length:
                 cell = matrix[down][right]
-                if cell.getType() != "e" and cell.getColor() != "b":
-                    self.poss_moves.append(cell.getPos())
+                if include_attack:
+                    if cell.getColor() != "b":
+                        self.poss_moves.append(cell.getPos())
+                else:
+                    if cell.getType() != "e" and cell.getColor() != "b":
+                        self.poss_moves.append(cell.getPos())
             if down <= length and left >= 0:
                 cell = matrix[down][left]
-                if cell.getType() != "e" and cell.getColor() != "b":
-                    self.poss_moves.append(cell.getPos())
+                if include_attack:
+                    if cell.getColor() != "b":
+                        self.poss_moves.append(cell.getPos())
+                else:
+                    if cell.getType() != "e" and cell.getColor() != "b":
+                        self.poss_moves.append(cell.getPos())
 
             # Default
             has_default: bool = False
@@ -246,6 +269,39 @@ class Piece:
                 else:
                     break
 
+    def getRookRange(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+        # Left starting from piece
+        for i in range(1, length + 1):
+            left_dex = x - i
+            if left_dex >= 0:
+                cell = matrix[y][left_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Right starting from piece
+        for i in range(1, length + 1):
+            right_dex = x + i
+            if right_dex <= length:
+                cell = matrix[y][right_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Up starting from piece
+        for i in range(1, length + 1):
+            up_dex = y - i
+            if up_dex >= 0:
+                cell = matrix[up_dex][x]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Down starting from piece
+        for i in range(1, length + 1):
+            down_dex = y + i
+            if down_dex <= length:
+                cell = matrix[down_dex][x]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
     def getBishopMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         # Up Left starting from piece
         for i in range(1, length + 1):
@@ -311,6 +367,43 @@ class Piece:
                 else:
                     break
 
+    def getBishopRange(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
+        # Up Left starting from piece
+        for i in range(1, length + 1):
+            up_dex = y - i
+            left_dex = x - i
+            if up_dex >= 0 and left_dex >= 0:
+                cell = matrix[up_dex][left_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Up Right starting from piece
+        for i in range(1, length + 1):
+            up_dex = y - i
+            right_dex = x + i
+            if up_dex >= 0 and right_dex <= length:
+                cell = matrix[up_dex][right_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Down Left starting from piece
+        for i in range(1, length + 1):
+            down_dex = y + i
+            left_dex = x - i
+            if down_dex <= length and left_dex >= 0:
+                cell = matrix[down_dex][left_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
+        # Down Right starting from piece
+        for i in range(1, length + 1):
+            down_dex = y + i
+            right_dex = x + i
+            if down_dex <= length and right_dex <= length:
+                cell = matrix[down_dex][right_dex]
+                if cell.getPos() not in self.range:
+                    self.range.append(cell.getPos())
+
     def getKnightMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         offsets = [
             [-2, -1],
@@ -360,6 +453,9 @@ class Piece:
         self.getBishopMoves(matrix, x, y, length)
         self.getKnightMoves(matrix, x, y, length)
         self.getKingMoves(matrix, x, y, length)
+
+        self.getRookRange(matrix, x, y, length)
+        self.getBishopRange(matrix, x, y, length)
 
     def updateKingArea(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         offsets = [

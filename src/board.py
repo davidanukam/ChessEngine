@@ -1,6 +1,6 @@
 import pygame as pg
 
-from piece import Piece
+from src.piece import Piece
 
 pg.font.init()
 font_arial = pg.font.SysFont("Arial", 100, True)
@@ -38,6 +38,8 @@ class Board:
 
         self.turn: str = "w"
         self.winner: str | None = None
+
+        self.op_poss_moves: list[pg.Rect] = []
 
         self.setup()
 
@@ -182,18 +184,6 @@ class Board:
             # Unto turns
             self.turn = "b" if self.turn == "w" else "w"
 
-    def update(self):
-        # Update the possible moves of all pieces
-        self.updateAllPossMoves()
-
-        self.disableMoveIntoCheck()
-
-        # Remove the positions that will keep king in check
-        if self.in_check:
-            self.removeCheckPossMovesFromKing()
-
-        self.checkForCheckMate()
-
     def draw(self, surface):
         light_brown = (193, 135, 70)
         dark_brown = (63, 35, 20)
@@ -277,7 +267,28 @@ class Board:
 
                     # Possible positions
                     for p in self.matrix[row][col].getPossMoves():
+                        p = pg.Rect(
+                            p[0] + border_size / 2,
+                            p[1] + border_size / 2,
+                            p[2] - border_size,
+                            p[3] - border_size,
+                        )
                         pg.draw.rect(surface, "blue", p, border_size)
+
+                # NOTE: Show all possible moves that the opponent can make
+                # if len(self.op_poss_moves):
+                #     for move in self.op_poss_moves:
+                #         pg.draw.rect(
+                #             surface,
+                #             "purple",
+                #             pg.Rect(
+                #                 move[0] + move[2] / 4,
+                #                 move[1] + move[3] / 4,
+                #                 move[2] / 2,
+                #                 move[3] / 2,
+                #             ),
+                #             border_size,
+                #         )
 
     def updateAllPossMoves(self):
         for row in range(self.rows):
@@ -287,12 +298,28 @@ class Board:
                     y: int = self.matrix[row][col].getPos()[1] // self.cell_size
                     self.matrix[row][col].updatePossMoves(self.matrix, x, y)
 
+    def updateOpPossMoves(self):
+        other_turn: str = "b" if self.turn == "w" else "w"
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if (
+                    self.matrix[row][col].getPos()
+                    and self.matrix[row][col].getColor() == other_turn
+                ):
+                    x: int = self.matrix[row][col].getPos()[0] // self.cell_size
+                    y: int = self.matrix[row][col].getPos()[1] // self.cell_size
+                    self.matrix[row][col].updatePossMoves(self.matrix, x, y, True)
+
     def removeCheckPossMovesFromKing(self):
         other_turn: str = "b" if self.turn == "w" else "w"
 
         curr_poss_moves: list[pg.Rect] = self.getKing().getPossMoves()
         remove_poss_moves: list[pg.Rect] = []
         temp_poss_moves: list[pg.Rect] = []
+
+        # We want to include the opponents pawn attacks as well
+        self.updateOpPossMoves()
 
         for row in range(self.rows):
             for col in range(self.cols):
@@ -315,49 +342,6 @@ class Board:
 
         self.getKing().setPossMoves(temp_poss_moves)
 
-    def disableMoveIntoCheck(self):
-        if self.getKing():
-            king_area: list[pg.Rect] = self.getKing().getKingArea()
-
-            for row in range(self.rows):
-                for col in range(self.cols):
-                    if self.matrix[row][col].getColor() == self.turn:
-                        if self.matrix[row][col].getPos() in king_area:
-                            cant_move: list[bool, pg.Rect] = self.checkInOtherPossMoves(
-                                self.matrix[row][col].getPos()
-                            )
-
-                            if cant_move[0]:
-                                # Check if the piece can still attack it
-                                curr_poss_moves: list[pg.Rect] = self.matrix[row][
-                                    col
-                                ].getPossMoves()
-
-                                can_attack: bool = False
-                                move_to_keep: pg.Rect = None
-
-                                for poss_move in curr_poss_moves:
-                                    if (
-                                        poss_move[0] == cant_move[1][0]
-                                        and poss_move[1] == cant_move[1][1]
-                                        and poss_move[2] == cant_move[1][2]
-                                        and poss_move[3] == cant_move[1][3]
-                                    ):
-                                        move_to_keep = poss_move
-                                        can_attack = True
-                                        break
-
-                                if can_attack and move_to_keep:
-                                    # Remove the non-attackable positions
-                                    self.matrix[row][col].setPossMoves(
-                                        self.matrix[row][col].KeepAttackPossMoves(
-                                            move_to_keep
-                                        )
-                                    )
-                                else:
-                                    # Disable piece movement
-                                    self.matrix[row][col].setPossMoves([])
-
     def checkInOtherPossMoves(self, pos: pg.Rect) -> list[bool, pg.Rect]:
         other_turn: str = "b" if self.turn == "w" else "w"
 
@@ -366,6 +350,23 @@ class Board:
                 if self.matrix[row][col].getColor() == other_turn:
                     other_poss_moves = self.matrix[row][col].getPossMoves()
                     for other_move in other_poss_moves:
+                        if (
+                            pos[0] == other_move[0]
+                            and pos[1] == other_move[1]
+                            and pos[2] == other_move[2]
+                            and pos[3] == other_move[3]
+                        ):
+                            return [True, self.matrix[row][col].getPos()]
+        return [False, None]
+
+    def checkInOtherRanges(self, pos: pg.Rect) -> list[bool, pg.Rect]:
+        other_turn: str = "b" if self.turn == "w" else "w"
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.matrix[row][col].getColor() == other_turn:
+                    other_range = self.matrix[row][col].getRange()
+                    for other_move in other_range:
                         if (
                             pos[0] == other_move[0]
                             and pos[1] == other_move[1]
@@ -388,24 +389,105 @@ class Board:
     def checkForCheck(self):
         other_turn: str = "b" if self.turn == "w" else "w"
 
+        if not self.getKing():
+            self.game_over = True
+            return
+
         for row in range(self.rows):
             for col in range(self.cols):
                 other_piece = self.matrix[row][col]
                 if other_piece.getColor() == other_turn:
-                    if not self.getKing():
-                        self.game_over = True
-                        return
                     if self.getKing().getPos() in other_piece.getPossMoves():
                         self.in_check = True
-                        break
-            if self.in_check:
-                break
+                        return
 
     def checkForCheckMate(self):
         if self.in_check:
             if not len(self.getKing().getPossMoves()):
                 self.in_checkmate = True
                 self.in_check = False
+
+    def checkIfMoveIntoCheck(self) -> bool:
+        other_turn: str = "b" if self.turn == "w" else "w"
+        self.op_poss_moves: list[pg.Rect] = []
+
+        # Temporarily remove the selected piece from the board
+        # And see if any opponent piece can now capture the king
+        prev_type = self.selected_piece.getType()
+        prev_color = self.selected_piece.getColor()
+        self.selected_piece.setType("e")
+        self.updateOpPossMoves()
+
+        # Find all moves in the opponents possible moves that the king shows up in
+        for row in range(self.rows):
+            for col in range(self.cols):
+                piece = self.matrix[row][col]
+                if piece.getColor() == other_turn:
+                    for move in piece.getPossMoves():
+                        if move not in self.op_poss_moves:
+                            self.op_poss_moves.append(move)
+
+        # Return selected piece back to where it was
+        self.selected_piece.setType(prev_type)
+        self.selected_piece.setColor(prev_color)
+        self.updateOpPossMoves()
+
+        return self.getKing().getPos() in self.op_poss_moves
+
+    def RemoveMovesThatDontExitCheck(self):
+        prev_color = self.selected_piece.getColor()
+        prev_type = self.selected_piece.getType()
+
+        new_poss_moves: list[pg.Rect] = []
+
+        # Check if the selected pieces possible moves will get the king out of check
+        for move in self.selected_piece.getPossMoves():
+            # Temporarily remove the selected piece from the board
+            # And see if any opponent piece can now capture the king
+            self.selected_piece.setType("e")
+
+            row, col = move[1] // self.cell_size, move[0] // self.cell_size
+
+            prev_move_type = self.matrix[row][col].getType()
+            prev_move_color = self.matrix[row][col].getColor()
+
+            self.matrix[row][col].setType(prev_type)
+            self.matrix[row][col].setColor(prev_color)
+
+            # Call this to update the self.op_poss_moves array
+            self.checkIfMoveIntoCheck()
+
+            # Check if the King is not in check after the pseudo move
+            if not self.getKing().getPos() in self.op_poss_moves:
+                new_poss_moves.append(move)
+
+            # Return pseudo move cell data back to what is was
+            self.matrix[row][col].setType(prev_move_type)
+            self.matrix[row][col].setColor(prev_move_color)
+
+            # Return selected piece back to where it was
+            self.selected_piece.setType(prev_type)
+            self.selected_piece.setColor(prev_color)
+
+            # Call this to update the self.op_poss_moves array
+            self.checkIfMoveIntoCheck()
+
+        self.selected_piece.setPossMoves(new_poss_moves)
+
+        # For Pawns only:
+        # If the 2x move remains but the 1x move doesn't
+        # (meaning the pawn hasn't moved yet)
+        # then remove both moves
+        if self.selected_piece.getType() == "p":
+            if len(self.selected_piece.getPossMoves()) == 1:
+                # Check 2 cells above and 2 cells bellow
+                if (
+                    self.selected_piece.getPossMoves()[0][1] // self.cell_size
+                    == (self.selected_piece.getPos()[1] // self.cell_size) + 2
+                    or self.selected_piece.getPossMoves()[0][1] // self.cell_size
+                    == (self.selected_piece.getPos()[1] // self.cell_size) - 2
+                ):
+                    self.selected_piece.setPossMoves([])
 
     def select(self, pos):
         x: int = pos[0] // self.cell_size
@@ -417,12 +499,38 @@ class Board:
             and clicked_piece.getType() != "e"
             and clicked_piece.getColor() == self.turn
         ):
+            # Update every piece's possible positions before we make any checks
+            self.updateAllPossMoves()
+
             self.selected_piece = clicked_piece
 
             if self.in_checkmate:
                 self.selected_piece = None
             else:
                 self.is_moving = True
+
+                # Check if king is in check
+                if self.in_check:
+                    # If selected piece is the King then check if any of the kings moves will keep it in check
+                    if self.selected_piece == self.getKing():
+                        # Remove moves that will keep it in check
+                        self.removeCheckPossMovesFromKing()
+                    else:
+                        # Call this to update the self.op_poss_moves array
+                        self.checkIfMoveIntoCheck()
+
+                        # Pretend a piece moves into one of its possible possiitions.
+                        # If that move happens and the king is still in check then we can't make that move.
+                        # So then, delete that move from the selected piece's possible moves
+                        self.RemoveMovesThatDontExitCheck()
+                else:
+                    # If the selected piece is the king then we want to remove the moves that would put it in check
+                    if self.selected_piece == self.getKing():
+                        self.removeCheckPossMovesFromKing()
+
+                    # If the selected piece is not the King but if it moves then it can put the King into check then remove its movement entirely
+                    if self.checkIfMoveIntoCheck():
+                        self.selected_piece.clearAllMoves()
 
                 # Save state before new move
                 self.states.append(
@@ -452,11 +560,13 @@ class Board:
                     self.in_check = False
 
                     self.updateAllPossMoves()
+                    self.updateOpPossMoves()
 
                     # Switch turns
                     self.turn: str = "b" if self.turn == "w" else "w"
                     self.checkForCheck()
-                    # self.disableMoveIntoCheck()
+                    self.removeCheckPossMovesFromKing()
+                    self.checkForCheckMate()
                 else:
                     # Remove last saved state if no move is made
                     self.states.pop()
