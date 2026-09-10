@@ -311,37 +311,6 @@ class Board:
                     y: int = self.matrix[row][col].getPos()[1] // self.cell_size
                     self.matrix[row][col].updatePossMoves(self.matrix, x, y, True)
 
-    def removeCheckPossMovesFromKing(self):
-        other_turn: str = "b" if self.turn == "w" else "w"
-
-        curr_poss_moves: list[pg.Rect] = self.getKing().getPossMoves()
-        remove_poss_moves: list[pg.Rect] = []
-        temp_poss_moves: list[pg.Rect] = []
-
-        # We want to include the opponents pawn attacks as well
-        self.updateOpPossMoves()
-
-        for row in range(self.rows):
-            for col in range(self.cols):
-                if self.matrix[row][col].getColor() == other_turn:
-                    other_poss_moves = self.matrix[row][col].getPossMoves()
-                    for poss_move in curr_poss_moves:
-                        for other_move in other_poss_moves:
-                            if (
-                                poss_move[0] == other_move[0]
-                                and poss_move[1] == other_move[1]
-                                and poss_move[2] == other_move[2]
-                                and poss_move[3] == other_move[3]
-                            ):
-                                if poss_move not in remove_poss_moves:
-                                    remove_poss_moves.append(poss_move)
-
-        for poss_move in curr_poss_moves:
-            if poss_move not in remove_poss_moves:
-                temp_poss_moves.append(poss_move)
-
-        self.getKing().setPossMoves(temp_poss_moves)
-
     def checkInOtherPossMoves(self, pos: pg.Rect) -> list[bool, pg.Rect]:
         other_turn: str = "b" if self.turn == "w" else "w"
 
@@ -418,7 +387,7 @@ class Board:
         self.selected_piece.setType("e")
         self.updateOpPossMoves()
 
-        # Find all moves in the opponents possible moves that the king shows up in
+        # Get all of the opponents possible moves (if the selected piece did not exist)
         for row in range(self.rows):
             for col in range(self.cols):
                 piece = self.matrix[row][col]
@@ -509,28 +478,10 @@ class Board:
             else:
                 self.is_moving = True
 
-                # Check if king is in check
-                if self.in_check:
-                    # If selected piece is the King then check if any of the kings moves will keep it in check
-                    if self.selected_piece == self.getKing():
-                        # Remove moves that will keep it in check
-                        self.removeCheckPossMovesFromKing()
-                    else:
-                        # Call this to update the self.op_poss_moves array
-                        self.checkIfMoveIntoCheck()
-
-                        # Pretend a piece moves into one of its possible possiitions.
-                        # If that move happens and the king is still in check then we can't make that move.
-                        # So then, delete that move from the selected piece's possible moves
-                        self.RemoveMovesThatDontExitCheck()
-                else:
-                    # If the selected piece is the king then we want to remove the moves that would put it in check
-                    if self.selected_piece == self.getKing():
-                        self.removeCheckPossMovesFromKing()
-
-                    # If the selected piece is not the King but if it moves then it can put the King into check then remove its movement entirely
-                    if self.checkIfMoveIntoCheck():
-                        self.selected_piece.clearAllMoves()
+                # Pretend a piece moves into one of its possible possiitions.
+                # If that move happens and the king is still in check then we can't make that move.
+                # So then, delete that move from the selected piece's possible moves
+                self.RemoveMovesThatDontExitCheck()
 
                 # Save state before new move
                 self.states.append(
@@ -565,7 +516,6 @@ class Board:
                     # Switch turns
                     self.turn: str = "b" if self.turn == "w" else "w"
                     self.checkForCheck()
-                    self.removeCheckPossMovesFromKing()
                     self.checkForCheckMate()
                 else:
                     # Remove last saved state if no move is made
