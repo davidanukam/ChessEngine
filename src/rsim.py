@@ -3,7 +3,6 @@ import pywinstyles
 import sys
 
 import random
-import pyautogui
 
 from src.board import Board
 
@@ -17,7 +16,7 @@ def rsim():
     FPS = 60
 
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    pg.display.set_caption("Chess")
+    pg.display.set_caption("Chess Sim")
     pywinstyles.change_header_color(screen, "black")
 
     icon = pg.image.load("assets/board.png")
@@ -27,11 +26,10 @@ def rsim():
 
     board = Board(WIDTH, HEIGHT)
 
-    # w_positions: list[pg.Rect] = []
-    # w_poss_positions: list[pg.Rect] = []
-
-    # b_positions: list[pg.Rect] = []
-    # b_poss_positions: list[pg.Rect] = []
+    w_positions = []
+    w_poss_positions = []
+    b_positions = []
+    b_poss_positions = []
 
     def update_poss():
         global w_positions, w_poss_positions, b_positions, b_poss_positions
@@ -44,14 +42,14 @@ def rsim():
         for row in range(len(board.matrix)):
             for col in range(len(board.matrix[0])):
                 piece = board.matrix[row][col]
-                if piece.getColor() == "w":
+                if piece.getColor() == "white":
                     if piece.getPos() not in w_positions:
                         w_positions.append(piece.getPos())
 
                     for move in piece.getPossMoves():
                         if move not in w_poss_positions:
                             w_poss_positions.append(move)
-                elif piece.getColor() == "b":
+                elif piece.getColor() == "black":
                     if piece.getPos() not in b_positions:
                         b_positions.append(piece.getPos())
 
@@ -59,10 +57,11 @@ def rsim():
                         if move not in b_poss_positions:
                             b_poss_positions.append(move)
 
+    board.updateAllPossMoves()
     update_poss()
 
     timer = 1
-    seconds_to_wait = 0.1
+    seconds_to_wait = 0.25
 
     running: bool = True
     while running:
@@ -83,51 +82,47 @@ def rsim():
 
         if timer % (FPS * seconds_to_wait) == 0:
             if not board.game_over:
-                update_poss()
-                board.updateAllPossMoves()
 
                 if board.selected_piece == None:
-                    pos = None
+                    board.updateAllPossMoves()
+                    update_poss()
+                    if board.turn == "white":
+                        while len(w_positions):
+                            # Click one white piece at random
+                            random_move = random.choice(w_positions)
 
-                    if board.turn == "w":
-                        movable_w_positions = []
+                            board.select(random_move)
 
-                        for i in range(len(w_positions)):
-                            if len(
-                                board.matrix[w_positions[i][1] // board.cell_size][
-                                    w_positions[i][0] // board.cell_size
-                                ].getPossMoves()
-                            ):
-                                movable_w_positions.append(w_positions[i])
+                            poss_moves = board.selected_piece.getPossMoves()
+                            if not len(poss_moves):
+                                w_positions.remove(random_move)
+                                board.selected_piece = None
+                            else:
+                                break
 
-                        pos = random.choice(movable_w_positions)
+                        if not len(w_positions):
+                            board.game_over = True
                     else:
-                        movable_b_positions = []
+                        while len(b_positions):
+                            # Click one black piece at random
+                            random_move = random.choice(b_positions)
 
-                        for j in range(len(b_positions)):
-                            if len(
-                                board.matrix[b_positions[j][1] // board.cell_size][
-                                    b_positions[j][0] // board.cell_size
-                                ].getPossMoves()
-                            ):
-                                movable_b_positions.append(b_positions[j])
+                            board.select(random_move)
 
-                        pos = random.choice(movable_b_positions)
+                            poss_moves = board.selected_piece.getPossMoves()
+                            if not len(poss_moves):
+                                b_positions.remove(random_move)
+                                board.selected_piece = None
+                            else:
+                                break
 
-                    if pos:
-                        board.select((pos[0], pos[1]))
+                        if not len(b_positions):
+                            board.game_over = True
                 else:
-                    if len(board.selected_piece.getPossMoves()):
-                        pos = random.choice(board.selected_piece.getPossMoves())
+                    poss_moves = board.selected_piece.getPossMoves()
+                    random_poss_move = random.choice(poss_moves)
 
-                        board.select((pos[0], pos[1]))
-                    else:
-                        board.game_over = True
-
-                # Take a screenshot before exiting if it errors
-                screenshot = pyautogui.screenshot()
-
-                screenshot.save("chess_screen.png")
+                    board.select(random_poss_move)
 
         ## Draw
         screen.fill("black")

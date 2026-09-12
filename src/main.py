@@ -12,7 +12,7 @@ def main():
     FPS = 60
 
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    pg.display.set_caption("Chess")
+    pg.display.set_caption("Chess Engine")
     pywinstyles.change_header_color(screen, "black")
 
     icon = pg.image.load("assets/board.png")

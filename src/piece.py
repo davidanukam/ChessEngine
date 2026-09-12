@@ -101,14 +101,16 @@ class Piece:
         include_pawn_attack: bool = False,
     ) -> None:
         global other_color
-        other_color = "b" if self.color == "w" else "w"
+        other_color = "black" if self.color == "white" else "white"
 
         self.poss_moves: list[pg.Rect] = []
         length: int = len(matrix) - 1
 
         # Pawns
         if self.type == "p":
-            self.getPawnMoves(matrix, x, y, length, include_pawn_attack)
+            self.poss_moves = self.getPawnMoves(
+                matrix, x, y, length, include_pawn_attack
+            )
 
         # Rooks
         if self.type == "r":
@@ -140,77 +142,81 @@ class Piece:
         y: int,
         length: int,
         include_attack: bool = False,
-    ):
+    ) -> list[pg.Rect]:
         up = y - 1
         down = y + 1
         left = x - 1
         right = x + 1
 
-        if self.color == "w":
+        poss_moves: list[pg.Rect] = []
+
+        if self.color == "white":
             # Attack
             if up >= 0 and left >= 0:
                 cell = matrix[up][left]
                 if include_attack:
-                    if cell.getColor() != "w":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getColor() != "white":
+                        poss_moves.append(cell.getPos())
                 else:
-                    if cell.getType() != "e" and cell.getColor() != "w":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getType() != "e" and cell.getColor() != "white":
+                        poss_moves.append(cell.getPos())
             if up >= 0 and right <= length:
                 cell = matrix[up][right]
                 if include_attack:
-                    if cell.getColor() != "w":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getColor() != "white":
+                        poss_moves.append(cell.getPos())
                 else:
-                    if cell.getType() != "e" and cell.getColor() != "w":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getType() != "e" and cell.getColor() != "white":
+                        poss_moves.append(cell.getPos())
 
             # Default
             if up >= 0:
                 has_default: bool = False
                 cell = matrix[up][x]
                 if cell.getType() == "e":
-                    self.poss_moves.append(cell.getPos())
+                    poss_moves.append(cell.getPos())
                     has_default: bool = True
 
                 # 2x Up
                 if up - 1 >= 0:
                     cell = matrix[up - 1][x]
                     if has_default and self.move_count == 0 and cell.getType() == "e":
-                        self.poss_moves.append(cell.getPos())
+                        poss_moves.append(cell.getPos())
 
-        elif self.color == "b":
+        elif self.color == "black":
             # Attack
             if down <= length and right <= length:
                 cell = matrix[down][right]
                 if include_attack:
-                    if cell.getColor() != "b":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getColor() != "black":
+                        poss_moves.append(cell.getPos())
                 else:
-                    if cell.getType() != "e" and cell.getColor() != "b":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getType() != "e" and cell.getColor() != "black":
+                        poss_moves.append(cell.getPos())
             if down <= length and left >= 0:
                 cell = matrix[down][left]
                 if include_attack:
-                    if cell.getColor() != "b":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getColor() != "black":
+                        poss_moves.append(cell.getPos())
                 else:
-                    if cell.getType() != "e" and cell.getColor() != "b":
-                        self.poss_moves.append(cell.getPos())
+                    if cell.getType() != "e" and cell.getColor() != "black":
+                        poss_moves.append(cell.getPos())
 
             # Default
             if down <= length:
                 has_default: bool = False
                 cell = matrix[down][x]
                 if cell.getType() == "e":
-                    self.poss_moves.append(cell.getPos())
+                    poss_moves.append(cell.getPos())
                     has_default: bool = True
 
                 # 2x Down
                 if down + 1 <= length:
                     cell = matrix[down + 1][x]
                     if has_default and self.move_count == 0 and cell.getType() == "e":
-                        self.poss_moves.append(cell.getPos())
+                        poss_moves.append(cell.getPos())
+
+        return poss_moves
 
     def getRookMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         # Left starting from piece
@@ -455,7 +461,6 @@ class Piece:
     def getQueenMoves(self, matrix: list[list["Piece"]], x: int, y: int, length: int):
         self.getRookMoves(matrix, x, y, length)
         self.getBishopMoves(matrix, x, y, length)
-        self.getKnightMoves(matrix, x, y, length)
         self.getKingMoves(matrix, x, y, length)
 
         self.getRookRange(matrix, x, y, length)
