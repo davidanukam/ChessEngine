@@ -28,8 +28,9 @@ def main():
             if event.type == pg.QUIT:
                 running = False
             if event.type == pg.MOUSEBUTTONDOWN:
-                if not board.game_over:
-                    board.select(event.pos)
+                if event.button == 1:
+                    if not board.game_over:
+                        board.select(event.pos)
             if event.type == pg.KEYDOWN:
                 if not board.game_over:
                     if event.key == pg.K_z:
@@ -44,7 +45,7 @@ def main():
 
         board.draw(screen)
         if not board.game_over:
-            board.showPossMoves(screen)
+            board.showPossMoves(screen, True)
 
         pg.display.flip()
         clock.tick(FPS)
